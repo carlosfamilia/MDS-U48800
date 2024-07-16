@@ -1,0 +1,41 @@
+; min.mdp - used as input into grompp to generate min.tpr
+
+; Preprocessing
+define                  = -DFLEXIBLE    ; defines to pass to the preprocessor
+
+; Run Control
+integrator              = steep         ; Steepest descent minimization energy minimization
+nsteps                  = 10000         ; Maximum number of steps to minimize
+emtol                   = 15.0          ; Stop minimization when the maximum force < 15.0 kJ/mol/nm
+emstep                  = 0.001         ; Maximum step-size [nm]
+
+; Output Control
+nstxout                 = 100           ; Frequency to write coordinates to trajectory [steps]
+nstvout                 = 100           ; Frequency to write velocities to trajectory [steps]
+nstfout                 = 100           ; Frequency to write forces to trajectory [steps]
+nstlog                  = 1             ; Frequency to write energies to log file [steps]
+nstenergy               = 1             ; Frequency to write energies to energy file [steps]
+energygrps              = system        ; Group(s) to write to energy file
+
+; Bond parameters
+continuation            = no        	; Apply constraints to the start configuration and reset shells
+constraint_algorithm    = lincs     	; LINear Constraint Solver for holonomic constraints
+constraints             = h-bonds    	; Convert the bonds with H-atoms to constraints
+lincs_iter              = 1         	; Number of iterations to correct for rotational lengthening in LINCS
+lincs_order             = 4         	; Highest order in the expansion of the constraint coupling matrix
+
+; Neighbor Searching
+cutoff-scheme           = verlet        ; Buffered neighbor searching
+nstlist                 = 10            ; Frequency to update neighbor list [steps]
+pbc                     = xyz           ; Periodic boundary conditions in all directions
+rlist                   = 1.0           ; Cut-off distance for the short-range neighbor list [nm]
+
+; Electrostatics
+coulombtype             = PME           ; Particle-Mesh Ewald electrostatics
+rcoulomb                = 1.0           ; Distance for Coulomb cut-off [nm]
+fourierspacing          = 0.125          ; Grid spacing for FFT grid [nm]
+
+; Van der Waals
+vdwtype                 = cut-off       ; Twin-range cut-off with rlist where rvdw >= rlist
+rvdw                    = 1.0           ; Distance for LJ cut-off [nm]
+DispCorr                = EnerPres      ; Apply long range dispersion corrections for energy

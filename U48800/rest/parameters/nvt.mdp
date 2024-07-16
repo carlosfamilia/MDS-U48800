@@ -1,0 +1,53 @@
+; nvt.mdp - used as input into grompp to generate nvt.tpr
+
+; Run parameters
+integrator              = md              ; Leap-frog integrator
+nsteps                  = 100000      	  ; Maximum number of steps to integrate (100 ps)
+dt                      = 0.001     	  ; Time step for integration [ps]
+
+; Output control
+nstxout                 = 1000     		  ; Frequency to write coordinates to trajectory [steps]
+nstvout                 = 1000     		  ; Frequency to write velocities to trajectory [steps]
+nstfout                 = 1000            ; Frequency to write forces to trajectory [steps]
+nstlog                  = 1000            ; Frequency to write energies to log file [steps]
+nstenergy               = 1000            ; Frequency to write energies to energy file [steps]
+energygrps              = system          ; Group(s) to write to energy file
+
+; Bond parameters
+continuation            = no        	  ; Apply constraints to the start configuration and reset shells
+constraint_algorithm    = lincs     	  ; Linear Constraint Solver for holonomic constraints
+constraints             = h-bonds    	  ; Convert the bonds with H-atoms to constraints
+lincs_iter              = 1         	  ; Number of iterations to correct for rotational lengthening in LINCS
+lincs_order             = 4         	  ; Highest order in the expansion of the constraint coupling matrix
+
+; Neighbor Searching
+cutoff-scheme           = Verlet   		  ; Buffered neighbor searching
+nstlist                 = 10        	  ; Frequency to update the neighbor list
+pbc                     = xyz             ; Periodic boundary conditions in all directions
+rlist		            = 1.2             ; The distance for the neighbor list
+
+; Electrostatics
+coulombtype             = PME       	  ; Particle Mesh Ewald for long-range electrostatics
+pme_order               = 4         	  ; The number of grid points along a dimension to which a charge is mapped
+rcoulomb                = 1.2       	  ; The distance for the Coulomb cut-off
+fourierspacing          = 0.125      	  ; The grid spacing for FFT
+
+; Van der Waals
+vdwtype				    = Cut-off   	  ; Twin-range cut-off with rlist where rvdw >= rlist
+rvdw                    = 1.2       	  ; Short-range Van der Waals cutoff [nm]
+DispCorr                = EnerPres     	  ; Apply long range dispersion corrections for Energy 
+
+; Temperature coupling
+tcoupl                  = v-rescale       ; Temperature coupling with a Berendsen thermostat
+tc-grps                 = system          ; Groups to couple to separate temperature baths
+tau_t                   = 0.1             ; Time constant for coupling [ps]
+ref_t                   = 293.15          ; Reference temperature, one for each group [K]
+nsttcouple              = 10              ; Frequency to couple temperature [steps]
+
+; Pressure coupling
+pcoupl                  = no        	  ; no pressure coupling in NVT
+
+; Velocity generation
+gen_vel                 = yes       	  ; Assign velocities according to a Maxwell distribution
+gen_temp                = 293.15       	  ; Temperature for Maxwell distribution [K]
+gen_seed                = -1        	  ; Generate a random seed

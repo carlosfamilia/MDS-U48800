@@ -1,0 +1,16 @@
+;       Topology file
+;
+; The force field files to be included
+;
+; Include the molecule topology
+#include "U48800.itp"
+
+; Include TIP4P water topology
+#include "oplsaa.ff/tip4p.itp"
+
+[ system ]
+SOP
+
+[ molecules ]
+;molecule name   nr.
+SOP              1
