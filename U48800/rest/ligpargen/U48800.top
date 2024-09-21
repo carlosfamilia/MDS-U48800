@@ -2,15 +2,20 @@
 ;
 ; The force field files to be included
 ;
-; Include the molecule topology
+
+; Include the force field
+#include "oplsaa.ff/forcefield.itp"
+
+; Include the opioid molecule topology
 #include "U48800.itp"
 
-; Include TIP4P water topology
-#include "oplsaa.ff/tip4p.itp"
+; Include methanol topology
+#include "oplsaa.ff/methanol.itp"
 
 [ system ]
-SOP
+SOP ; in Methanol
 
 [ molecules ]
 ;molecule name   nr.
 SOP              1
+;MET              718

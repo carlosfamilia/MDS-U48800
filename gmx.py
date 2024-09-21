@@ -99,7 +99,7 @@ def gmx(executable, arguments, inputs, outputs, name = None, path = None, ensemb
         subprocess.run(sbmttr_cmd, cwd = path)
 
 
-def xvg_(title, subtitle, path, ensemble, xlabel, ylabel, label, sufix = '', movavg = 0):
+def xvg_line (title, subtitle, path, ensemble, xlabel, ylabel, label, sufix = '', movavg = 0):
     """
     Generates and saves a plot from data in an .xvg file, with optional moving average.
 
@@ -158,7 +158,87 @@ def xvg_(title, subtitle, path, ensemble, xlabel, ylabel, label, sufix = '', mov
     # Close the figure
     plt.close(fig)
 
-def xvg(title, path, ensemble, xlabel, ylabel, label, measure = None, units = None, values = None, replicas = None, sufix = '', movavg = 0):
+def xvg_multi_line(title, path, ensemble, xlabel, ylabel, label_prefix, replicas, sufix='', movavg=0, plot_type='values'):
+    """
+    Generates and saves a single plot with data from multiple replicas, each in a different color.
+
+    Parameters:
+    - title (str): The main title of the plot.
+    - path (str): The directory path where the .xvg files are located.
+    - ensemble (str): The name of the ensemble or dataset to be plotted.
+    - xlabel (str): The label for the x-axis.
+    - ylabel (str): The label for the y-axis.
+    - label_prefix (str): The prefix for the legend label for the plotted data.
+    - replicas (int): The number of replicas to generate plots for.
+    - sufix (str, optional): A suffix to append to the ensemble name for identifying the .xvg file. Defaults to ''.
+    - movavg (int, optional): The window size for the moving average. If 0, no moving average is plotted. Defaults to 0.
+    - plot_type (str, optional): Controls what to plot: 'values', 'moving_average', or 'both'. Defaults to 'values'.
+
+    Returns:
+    None. The function saves the plot as a PNG file in the specified path.
+    """
+    fig, ax = plt.subplots(figsize=(10, 6))
+    colors = plt.cm.viridis(np.linspace(0, 1, replicas))
+
+    for i in range(replicas):
+        data_path = '%s/replica%02d%s.xvg' % (path, i + 1, sufix)
+        data = np.loadtxt(data_path, comments=['@', '#'])
+        label = '%s %d' % (label_prefix, i + 1)
+
+        if plot_type in ['both', 'values']:
+            ax.plot(data[:, 0], data[:, 1], c=colors[i], lw=2, label=label)
+
+        if movavg != 0 and plot_type in ['both', 'moving_average']:
+            window = np.ones(movavg) / movavg
+            moving_avg = np.convolve(data[:, 1], window, 'valid')
+            ax.plot(data[movavg - 1:, 0], moving_avg, '--', c=colors[i], lw=2, label='%s MA' % label)
+
+    plt.suptitle(title)
+    plt.xlabel(xlabel)
+    ax.set_ylabel(ylabel, fontsize=10)
+
+    if("$" in ylabel):
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda value, _: r'${:.2e}$'.format(value)))
+
+    ax.legend(loc='upper right')
+    plt.savefig('%s/%s%s.png' % (path, ensemble, sufix), dpi = 300)
+    plt.close(fig)
+
+def xvg_multi_density(title, path, ensemble, xlabel, ylabel, label_prefix, replicas, sufix='', bandwidth=None):
+    """
+    Generates and saves a single plot with density plots from multiple replicas, each in a different color.
+
+    Parameters:
+    - title (str): The main title of the plot.
+    - path (str): The directory path where the .xvg files are located.
+    - ensemble (str): The name of the ensemble or dataset to be plotted.
+    - xlabel (str): The label for the x-axis.
+    - ylabel (str): The label for the y-axis.
+    - label_prefix (str): The prefix for the legend label for the plotted data.
+    - replicas (int): The number of replicas to generate plots for.
+    - sufix (str, optional): A suffix to append to the ensemble name for identifying the .xvg file. Defaults to ''.
+    - bandwidth (float, optional): The bandwidth for the kernel density estimate. Smaller values produce more detailed plots. Defaults to None, which automatically selects the bandwidth.
+
+    Returns:
+    None. The function saves the plot as a PNG file in the specified path.
+    """
+    plt.figure(figsize=(10, 6))
+    colors = plt.cm.viridis(np.linspace(0, 1, replicas))
+
+    for i in range(replicas):
+        data_path = f'{path}/replica{i + 1:02d}{sufix}.xvg'
+        data = np.loadtxt(data_path, comments=['@', '#'])
+        sns.kdeplot(data[:, 1], color=colors[i], bw_adjust=bandwidth, label=f'{label_prefix} {i + 1}')
+
+    plt.suptitle(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+
+    plt.legend(loc='upper right')
+    plt.savefig(f'{path}/{ensemble}{sufix}_density.png', dpi=300)
+    plt.close()
+
+def xvg(title, path, ensemble, xlabel, ylabel, label, measure = None, units = None, values = None, replicas = None, sufix = '', movavg = 0, multi_lines = False, plot_type = 'values'):
     """
     Generates and displays plots from .xvg files for a given ensemble, optionally across multiple replicas.
 
@@ -194,24 +274,26 @@ def xvg(title, path, ensemble, xlabel, ylabel, label, measure = None, units = No
 
     if replicas is None:
         subtitle = ""
-        xvg_(title, subtitle, path, ensemble, xlabel, ylabel, label, sufix, movavg)
+        xvg_line(title, subtitle, path, ensemble, xlabel, ylabel, label, sufix, movavg)
         html += '<td><img src="{}?{}" style="width:100%"></td>'.format('%s/%s%s.png' % (path, ensemble,sufix), time.time())
     else:
-        for i in range(1, replicas):
-            npath = "%s/replica%02d" % (path, i)
+        if multi_lines:
+            xvg_multi_line(title, path, ensemble, xlabel, ylabel, label, replicas, sufix, movavg, plot_type)
+            html += '<td><img src="{}?{}" style="width:100%"></td>'.format('%s/%s%s.png' % (path, ensemble,sufix), time.time())
+        else:
+            for i in range(1, replicas):
+                npath = "%s/replica%02d" % (path, i)
 
-            if ensemble == 'min':
-                subtitle = 'Replica #%02d' % (i - 1)
-            else:
-                subtitle = 'Replica #%02d (%s = %0.2f%s)' % (i - 1, measure, values[i - 1], units)
+                if ensemble == 'min':
+                    subtitle = 'Replica #%02d' % (i - 1)
+                else:
+                    subtitle = 'Replica #%02d (%s = %0.2f%s)' % (i - 1, measure, values[i - 1], units)
 
-            xvg_(title, subtitle, npath, ensemble, xlabel, ylabel, label, sufix, movavg)
-            html += '<td><img src="{}?{}" style="width:100%"></td>'.format('%s/%s%s.png' % (npath, ensemble,sufix), time.time())
-            if i % 3 == 0:
-                html += '</tr>' 
-
+                xvg_line(title, subtitle, npath, ensemble, xlabel, ylabel, label, sufix, movavg)
+                html += '<td><img src="{}?{}" style="width:100%"></td>'.format('%s/%s%s.png' % (npath, ensemble,sufix), time.time())
+                if i % 3 == 0:
+                    html += '</tr>' 
 
     # Add a query parameter with the current time to the image URL
-    
     html += '</table>'
     display(HTML(html))
